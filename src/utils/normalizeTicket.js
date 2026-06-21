@@ -3,7 +3,6 @@ import { buildTenantArea } from './areas';
 export function normalizeTicket(raw, fallbackTenantId = '') {
   if (!raw || typeof raw !== 'object') return null;
 
-  // El backend guarda los campos con mayúscula (Descripción, Nombre, etc.)
   const descripcion = String(
     raw.descripcion ?? raw['Descripción'] ?? raw.Descripcion ?? raw.description ?? ''
   ).trim();
