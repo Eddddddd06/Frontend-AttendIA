@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Plus, User, LogOut, X, Upload, Bot, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { registrarEmpleado, cargarTicketsCSV, actualizarAreas } from '../api/endpoints';
+import { registrarEmpleado, cargarTicketsCSV, actualizarAreas, obtenerEmpleados } from '../api/endpoints';
+import { parseTicketsFile } from '../utils/parseTicketsCsv';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 const DEFAULT_AREAS = ['Ventas', 'Soporte', 'Facturación'];
@@ -29,6 +30,29 @@ export default function AdminDashboard() {
   const areaOptions = [...new Set([...DEFAULT_AREAS, ...areas])];
   const initials = (user?.correo?.substring(0, 2) || 'AD').toUpperCase();
 
+  useEffect(() => {
+    async function loadEmployees() {
+      const res = await obtenerEmpleados();
+      if (!res.ok || !Array.isArray(res.data)) return;
+
+      setEmployees(
+        res.data.map((emp) => ({
+          id: emp.correo,
+          name: emp.correo.split('@')[0],
+          email: emp.correo,
+          area: emp.area || 'Sin área',
+          status: 'Activo',
+        }))
+      );
+
+      const dbAreas = Array.isArray(res.areas) ? res.areas : [];
+      const employeeAreas = res.data.map((e) => e.area).filter(Boolean);
+      setAreas([...new Set([...dbAreas, ...employeeAreas])]);
+    }
+
+    loadEmployees();
+  }, [user]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -54,16 +78,29 @@ export default function AdminDashboard() {
         setAreas(nuevasAreas);
       }
 
-      setEmployees([
-        ...employees,
-        {
-          id: Date.now().toString(),
-          name: newEmpEmail.split('@')[0],
-          email: newEmpEmail,
-          area: newEmpArea,
-          status: 'Activo',
-        },
-      ]);
+      const reload = await obtenerEmpleados();
+      if (reload.ok && Array.isArray(reload.data)) {
+        setEmployees(
+          reload.data.map((emp) => ({
+            id: emp.correo,
+            name: emp.correo.split('@')[0],
+            email: emp.correo,
+            area: emp.area || 'Sin área',
+            status: 'Activo',
+          }))
+        );
+      } else {
+        setEmployees([
+          ...employees,
+          {
+            id: newEmpEmail,
+            name: newEmpEmail.split('@')[0],
+            email: newEmpEmail,
+            area: newEmpArea,
+            status: 'Activo',
+          },
+        ]);
+      }
       setIsModalOpen(false);
       setNewEmpEmail('');
       setNewEmpPass('');
@@ -83,15 +120,12 @@ export default function AdminDashboard() {
     reader.onload = async (event) => {
       try {
         const text = event.target.result;
-        const rows = text.split('\n').filter((r) => r.trim());
-        const tickets = rows.slice(1).map((row) => {
-          const [descripcion, nombre_cliente, contacto_cliente] = row.split(',');
-          return {
-            descripcion: descripcion?.trim() || '',
-            nombre_cliente: nombre_cliente?.trim() || 'Desconocido',
-            contacto_cliente: contacto_cliente?.trim() || '',
-          };
-        }).filter((t) => t.descripcion.length >= 5);
+        const tickets = parseTicketsFile(text, file.name);
+
+        if (tickets.length === 0) {
+          setCsvResult({ ok: false, msg: 'No se encontraron tickets válidos (descripción mínima 5 caracteres).' });
+          return;
+        }
 
         const res = await cargarTicketsCSV({ tenant_id: user.tenant_id, tickets });
 
@@ -317,7 +351,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+            <input type="file" accept=".csv,.json" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
 
             <button
               type="button"

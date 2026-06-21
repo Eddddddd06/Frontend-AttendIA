@@ -4,11 +4,13 @@ import { ChevronDown, LogOut, X, CheckCircle2, Bot } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 import { obtenerTickets, resolverTicket } from '../api/endpoints';
+import { extractTicketList } from '../utils/normalizeTicket';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 function getUrgencyFromScore(score) {
-  if (score >= 80) return 'alta';
-  if (score >= 50) return 'media';
+  const value = Number(score) || 0;
+  if (value >= 80) return 'alta';
+  if (value >= 50) return 'media';
   return 'baja';
 }
 
@@ -25,6 +27,7 @@ function getUrgencyLabel(urgency) {
 }
 
 function formatDate(iso) {
+  if (!iso) return 'Fecha desconocida';
   try {
     return new Date(iso).toLocaleString('es-MX', {
       day: 'numeric',
@@ -53,12 +56,30 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     async function loadTickets() {
-      const tenantArea = `${user.tenant_id}#${user.area}`;
-      const res = await obtenerTickets({ tenant_area: tenantArea });
-      if (res.ok) {
-        const ordenados = (res.data || []).sort((a, b) => b.score - a.score);
-        setTickets(ordenados.filter((t) => t.estado?.toLowerCase() !== 'resuelto'));
+      if (!user?.tenant_id || !user?.area) {
+        setLoading(false);
+        return;
       }
+
+      const tenantArea = `${user.tenant_id}#${user.area.trim()}`;
+      const res = await obtenerTickets({ tenant_area: tenantArea });
+
+      if (res.ok) {
+        let list = extractTicketList(res, user.tenant_id);
+
+        // Fallback: si no hay resultados por área, filtrar del tenant completo
+        if (list.length === 0) {
+          const fallback = await obtenerTickets({ tenant_id: user.tenant_id });
+          if (fallback.ok) {
+            list = extractTicketList(fallback, user.tenant_id).filter(
+              (t) => t.area === user.area || t.tenant_area === tenantArea
+            );
+          }
+        }
+
+        setTickets(list);
+      }
+
       setLoading(false);
     }
     loadTickets();
@@ -167,9 +188,10 @@ export default function EmployeeDashboard() {
             ) : (
               tickets.map((ticket, idx) => {
                 const urgency = getUrgencyFromScore(ticket.score);
-                const subject = ticket.descripcion.length > 60
-                  ? `${ticket.descripcion.substring(0, 60)}...`
-                  : ticket.descripcion;
+                const descripcion = ticket.descripcion || 'Sin descripción';
+                const subject = descripcion.length > 60
+                  ? `${descripcion.substring(0, 60)}...`
+                  : descripcion;
 
                 return (
                   <div
@@ -230,7 +252,7 @@ export default function EmployeeDashboard() {
                 </p>
 
                 <div className={`text-base leading-relaxed bg-muted p-5 rounded-xl border border-border transition-all duration-300 ${isResolving ? 'max-h-32 overflow-y-auto text-sm opacity-80' : ''}`}>
-                  {selectedTicket.descripcion}
+                  {selectedTicket.descripcion || 'Sin descripción disponible'}
                 </div>
 
                 {isResolving && (
