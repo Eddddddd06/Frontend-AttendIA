@@ -1,12 +1,7 @@
-// Cambia esta URL cuando se despliegue un nuevo API Gateway
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
   || 'https://n6kdry65vl.execute-api.us-east-1.amazonaws.com/dev';
 
-/**
- * Helper para manejar ambas integraciones de API Gateway:
- * - Lambda Proxy: HTTP status real, body es el JSON directo
- * - Lambda Integration: HTTP 200 siempre, statusCode dentro del body
- */
+
 async function apiCall(endpoint, options = {}) {
   const token = localStorage.getItem('attendia_token');
 
@@ -33,7 +28,6 @@ async function apiCall(endpoint, options = {}) {
     return { ok: false, statusCode: response.status, message: 'Respuesta inválida del servidor' };
   }
 
-  // Lambda Integration: respuesta viene como { statusCode, body: "JSON string" }
   if (raw.statusCode !== undefined && typeof raw.body === 'string') {
     try {
       const parsed = JSON.parse(raw.body);
@@ -43,7 +37,6 @@ async function apiCall(endpoint, options = {}) {
     }
   }
 
-  // Lambda Proxy: respuesta directa
   if (raw.statusCode !== undefined) {
     return { ok: raw.statusCode >= 200 && raw.statusCode < 300, ...raw };
   }
@@ -51,7 +44,6 @@ async function apiCall(endpoint, options = {}) {
   return { ok: response.ok, statusCode: response.status, ...raw };
 }
 
-// ─── AUTH ─────────────────────────────────────────────────
 
 export async function registrarAdmin({ tenant_id, correo, password, nombre_empresa, areas }) {
   return apiCall('/auth/usuarios', {
@@ -93,7 +85,6 @@ export async function obtenerEmpleados() {
   return apiCall('/auth/empleados', { method: 'GET' });
 }
 
-// ─── TICKETS ──────────────────────────────────────────────
 
 export async function crearTicketPublico({ tenant_id, descripcion, nombre, contacto }) {
   return apiCall('/tickets', {
