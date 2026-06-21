@@ -73,15 +73,6 @@ export default function EmployeeDashboard() {
         list = extractTicketList(byArea, user.tenant_id);
       }
 
-      // Intento 2: todos del tenant + filtro client-side (fallback si GET por área falla)
-      const byTenant = await obtenerTickets({ tenant_id: user.tenant_id });
-      if (byTenant.ok) {
-        const filtered = extractTicketList(byTenant, user.tenant_id).filter((t) =>
-          ticketBelongsToEmployeeArea(t, user)
-        );
-        list = mergeUniqueTickets(list, filtered);
-      }
-
       setTickets(list);
       setLoading(false);
     }
