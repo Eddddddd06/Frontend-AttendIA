@@ -70,7 +70,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // 1. Registrar el área en la empresa ANTES de crear al empleado (PUT /auth/empresas/areas)
     const nuevasAreas = [...new Set([...areas, areaTrimmed])];
     const areasRes = await actualizarAreas(nuevasAreas);
     if (!areasRes.ok) {
@@ -80,7 +79,6 @@ export default function AdminDashboard() {
     }
     setAreas(Array.isArray(areasRes.data?.areas) ? areasRes.data.areas : nuevasAreas);
 
-    // 2. Crear empleado (POST /auth/usuarios)
     const res = await registrarEmpleado({
       correo: newEmpEmail,
       password: newEmpPass,
