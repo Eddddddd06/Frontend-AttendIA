@@ -65,9 +65,6 @@ export default function EmployeeDashboard() {
       const tenantArea = buildTenantArea(user.tenant_id, user.area);
       let list = [];
 
-      // Intento 1: filtro por tenant_area (formato: empresa#Soporte)
-      // La API ya devuelve solo los del área — no re-filtrar client-side
-      // para evitar descartar tickets que no traigan campo area/tenant_area.
       const byArea = await obtenerTickets({ tenant_area: tenantArea });
       if (byArea.ok) {
         list = extractTicketList(byArea, user.tenant_id);
