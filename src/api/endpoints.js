@@ -1,6 +1,6 @@
 // Cambia esta URL cuando se despliegue un nuevo API Gateway
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
-  || 'https://9mj1ymr1hi.execute-api.us-east-1.amazonaws.com/dev';
+  || 'https://n6kdry65vl.execute-api.us-east-1.amazonaws.com/dev';
 
 /**
  * Helper para manejar ambas integraciones de API Gateway:
