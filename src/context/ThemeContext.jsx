@@ -5,7 +5,7 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('attendia_theme');
-    return saved ? saved === 'dark' : true; // Dark por defecto
+    return saved ? saved === 'dark' : true; 
   });
 
   useEffect(() => {
