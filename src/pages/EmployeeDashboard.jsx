@@ -66,11 +66,11 @@ export default function EmployeeDashboard() {
       let list = [];
 
       // Intento 1: filtro por tenant_area (formato: empresa#Soporte)
+      // La API ya devuelve solo los del área — no re-filtrar client-side
+      // para evitar descartar tickets que no traigan campo area/tenant_area.
       const byArea = await obtenerTickets({ tenant_area: tenantArea });
       if (byArea.ok) {
-        list = extractTicketList(byArea, user.tenant_id).filter((t) =>
-          ticketBelongsToEmployeeArea(t, user)
-        );
+        list = extractTicketList(byArea, user.tenant_id);
       }
 
       // Intento 2: todos del tenant + filtro client-side (fallback si GET por área falla)
