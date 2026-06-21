@@ -32,7 +32,6 @@ export function AuthProvider({ children }) {
     try {
       await logoutUsuario();
     } catch {
-      // Invalidar sesión local aunque falle la red
     }
     localStorage.removeItem('attendia_token');
     localStorage.removeItem('attendia_user');
