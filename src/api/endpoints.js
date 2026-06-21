@@ -89,6 +89,10 @@ export async function actualizarAreas(areas) {
   });
 }
 
+export async function obtenerEmpleados() {
+  return apiCall('/auth/empleados', { method: 'GET' });
+}
+
 // ─── TICKETS ──────────────────────────────────────────────
 
 export async function crearTicketPublico({ tenant_id, descripcion, nombre, contacto }) {
