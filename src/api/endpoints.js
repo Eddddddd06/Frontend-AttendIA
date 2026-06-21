@@ -110,10 +110,14 @@ export async function cargarTicketsCSV({ tenant_id, tickets }) {
 }
 
 export async function obtenerTickets({ tenant_area, tenant_id }) {
-  const params = new URLSearchParams();
-  if (tenant_area) params.set('tenant_area', tenant_area);
-  else if (tenant_id) params.set('tenant_id', tenant_id);
-  return apiCall(`/tickets?${params.toString()}`, { method: 'GET' });
+  const parts = [];
+  if (tenant_area) {
+    parts.push(`tenant_area=${encodeURIComponent(tenant_area)}`);
+  } else if (tenant_id) {
+    parts.push(`tenant_id=${encodeURIComponent(tenant_id)}`);
+  }
+  const qs = parts.length ? `?${parts.join('&')}` : '';
+  return apiCall(`/tickets${qs}`, { method: 'GET' });
 }
 
 export async function resolverTicket(ticket_id, tenant_id) {

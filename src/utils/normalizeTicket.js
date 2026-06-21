@@ -1,3 +1,5 @@
+import { buildTenantArea } from './areas';
+
 export function normalizeTicket(raw, fallbackTenantId = '') {
   if (!raw || typeof raw !== 'object') return null;
 
@@ -19,7 +21,10 @@ export function normalizeTicket(raw, fallbackTenantId = '') {
     score: Number(raw.score ?? 0) || 0,
     estado,
     area: String(raw.area ?? ''),
-    tenant_area: String(raw.tenant_area ?? ''),
+    tenant_area: String(
+      raw.tenant_area
+      || buildTenantArea(raw.tenant_id ?? fallbackTenantId, raw.area)
+    ),
     creado_en: raw.creado_en ?? new Date().toISOString(),
   };
 }

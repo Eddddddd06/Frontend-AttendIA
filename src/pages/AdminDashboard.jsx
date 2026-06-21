@@ -63,21 +63,33 @@ export default function AdminDashboard() {
     setLoadingAdd(true);
     setAddError('');
 
+    const areaTrimmed = newEmpArea.trim();
+    if (!areaTrimmed) {
+      setAddError('Debes indicar un área para el empleado');
+      setLoadingAdd(false);
+      return;
+    }
+
+    // 1. Registrar el área en la empresa ANTES de crear al empleado (PUT /auth/empresas/areas)
+    const nuevasAreas = [...new Set([...areas, areaTrimmed])];
+    const areasRes = await actualizarAreas(nuevasAreas);
+    if (!areasRes.ok) {
+      setAddError(areasRes.message || 'No se pudo registrar el área. Verifica PUT /auth/empresas/areas');
+      setLoadingAdd(false);
+      return;
+    }
+    setAreas(Array.isArray(areasRes.data?.areas) ? areasRes.data.areas : nuevasAreas);
+
+    // 2. Crear empleado (POST /auth/usuarios)
     const res = await registrarEmpleado({
       correo: newEmpEmail,
       password: newEmpPass,
-      area: newEmpArea,
+      area: areaTrimmed,
     });
 
     setLoadingAdd(false);
 
     if (res.ok) {
-      const nuevasAreas = areas.includes(newEmpArea) ? areas : [...areas, newEmpArea];
-      if (nuevasAreas.length > areas.length) {
-        await actualizarAreas(nuevasAreas);
-        setAreas(nuevasAreas);
-      }
-
       const reload = await obtenerEmpleados();
       if (reload.ok && Array.isArray(reload.data)) {
         setEmployees(
@@ -306,15 +318,20 @@ export default function AdminDashboard() {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm text-muted-foreground">Asignar Área</label>
-                <select
+                <input
+                  type="text"
+                  required
+                  list="admin-areas-list"
                   value={newEmpArea}
                   onChange={(e) => setNewEmpArea(e.target.value)}
-                  className={`${inputClass} appearance-none`}
-                >
+                  placeholder="Ej: Soporte, Ventas..."
+                  className={inputClass}
+                />
+                <datalist id="admin-areas-list">
                   {areaOptions.map((area) => (
-                    <option key={area} value={area}>{area}</option>
+                    <option key={area} value={area} />
                   ))}
-                </select>
+                </datalist>
               </div>
 
               <div className="mt-2 flex justify-end gap-3">

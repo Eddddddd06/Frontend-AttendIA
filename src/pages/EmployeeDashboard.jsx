@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 import { obtenerTickets, resolverTicket } from '../api/endpoints';
 import { extractTicketList } from '../utils/normalizeTicket';
+import { buildTenantArea, ticketBelongsToEmployeeArea, mergeUniqueTickets } from '../utils/areas';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 function getUrgencyFromScore(score) {
@@ -56,30 +57,32 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     async function loadTickets() {
-      if (!user?.tenant_id || !user?.area) {
+      if (!user?.tenant_id || !user?.area?.trim()) {
         setLoading(false);
         return;
       }
 
-      const tenantArea = `${user.tenant_id}#${user.area.trim()}`;
-      const res = await obtenerTickets({ tenant_area: tenantArea });
+      const tenantArea = buildTenantArea(user.tenant_id, user.area);
+      let list = [];
 
-      if (res.ok) {
-        let list = extractTicketList(res, user.tenant_id);
-
-        // Fallback: si no hay resultados por área, filtrar del tenant completo
-        if (list.length === 0) {
-          const fallback = await obtenerTickets({ tenant_id: user.tenant_id });
-          if (fallback.ok) {
-            list = extractTicketList(fallback, user.tenant_id).filter(
-              (t) => t.area === user.area || t.tenant_area === tenantArea
-            );
-          }
-        }
-
-        setTickets(list);
+      // Intento 1: filtro por tenant_area (formato: empresa#Soporte)
+      const byArea = await obtenerTickets({ tenant_area: tenantArea });
+      if (byArea.ok) {
+        list = extractTicketList(byArea, user.tenant_id).filter((t) =>
+          ticketBelongsToEmployeeArea(t, user)
+        );
       }
 
+      // Intento 2: todos del tenant + filtro client-side (fallback si GET por área falla)
+      const byTenant = await obtenerTickets({ tenant_id: user.tenant_id });
+      if (byTenant.ok) {
+        const filtered = extractTicketList(byTenant, user.tenant_id).filter((t) =>
+          ticketBelongsToEmployeeArea(t, user)
+        );
+        list = mergeUniqueTickets(list, filtered);
+      }
+
+      setTickets(list);
       setLoading(false);
     }
     loadTickets();
